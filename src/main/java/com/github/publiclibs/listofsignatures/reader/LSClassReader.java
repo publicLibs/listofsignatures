@@ -85,9 +85,6 @@ public class LSClassReader extends ClassReader {
 			final var returnType = Type.getReturnType(desc);
 			final var returnCLassName = returnType.getClassName();
 
-			final var stringBuilder = new StringBuilder();
-			stringBuilder.append(returnCLassName).append(" ").append(methodName);
-
 			final var method = new MethodObj();
 			method.access = access;
 			method.returnClassName = returnCLassName;

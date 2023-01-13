@@ -91,7 +91,8 @@ public class Listofsignatures {
 				needShowRegEx.addIfAbsent(arg);
 			}
 		}
-		getForClassPathWithSettings(full, needShowRegEx);
+		final var result = getForClassPathWithSettings(full, needShowRegEx);
+		result.forEachOrdered(System.out::println);
 	}
 
 	public static void readZip(final CopyOnWriteArrayList<ClassObj> result, final Path input) throws IOException {
