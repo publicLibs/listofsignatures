@@ -51,24 +51,31 @@ public class Listofsignatures {
 	}
 
 	/**
+	 * @param appendLibs
 	 * @return
 	 * @throws IOException
 	 */
-	private static CopyOnWriteArrayList<ClassObj> getForClassPath() throws IOException {
+	private static CopyOnWriteArrayList<ClassObj> getForClassPath(final CopyOnWriteArrayList<Path> appendLibs)
+			throws IOException {
 		final var classPaths = System.getProperty("java.class.path").split(File.pathSeparator);
 		final var result = new CopyOnWriteArrayList<ClassObj>();
 		for (final String classPath : classPaths) {
 			final var classPathPath = Paths.get(classPath);
 			findClassInDir(result, classPathPath);
 		}
+		for (final Path path : appendLibs) {
+			findClassInDir(result, path);
+		}
+
 		return result;
 	}
 
-	public static Stream<String> getForClassPathWithSettings(final boolean full, final List<String> showOnlyRegExs)
-			throws IOException {
+	public static Stream<String> getForClassPathWithSettings(final boolean full, final List<String> showOnlyRegExs,
+			final CopyOnWriteArrayList<Path> appendLibs) throws IOException {
+
 		final var returnData = new ArrayList<String>();
 
-		final var result = getForClassPath();
+		final var result = getForClassPath(appendLibs);
 		for (final ClassObj classObj : result) {
 			final var list = classObj.getSignsForJazzer(full);
 			//
@@ -84,14 +91,21 @@ public class Listofsignatures {
 	public static void main(final String[] args) throws IOException {
 		var full = false;
 		final var needShowRegEx = new CopyOnWriteArrayList<String>();
+		final var appendLibs = new CopyOnWriteArrayList<Path>();
 		for (final String arg : args) {
+			final var tmpPath = Paths.get(arg).toAbsolutePath();
+
 			if (arg.equals("FULL")) {
 				full = true;
+				continue;
+			}
+			if (Files.exists(tmpPath)) {
+				appendLibs.addIfAbsent(tmpPath);
 			} else {
 				needShowRegEx.addIfAbsent(arg);
 			}
 		}
-		final var result = getForClassPathWithSettings(full, needShowRegEx);
+		final var result = getForClassPathWithSettings(full, needShowRegEx, appendLibs);
 		result.forEachOrdered(System.out::println);
 	}
 
