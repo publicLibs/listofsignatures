@@ -31,7 +31,7 @@ public class ClassPathUtils {
 		}
 
 		final var arg = new StringBuilder();
-		arg.append("-classpath ");
+		arg.append("--cp ");
 		arg.append("\"");
 		final var iter = cps.iterator();
 		while (iter.hasNext()) {
