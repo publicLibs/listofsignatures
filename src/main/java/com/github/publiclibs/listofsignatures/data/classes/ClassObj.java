@@ -28,7 +28,7 @@ public class ClassObj implements Serializable {
 			final var arg = args.next();
 			argBuilder.append(arg);
 			if (args.hasNext()) {
-				argBuilder.append(", ");
+				argBuilder.append(",");
 			}
 		}
 		return argBuilder;
