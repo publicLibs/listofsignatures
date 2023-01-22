@@ -55,7 +55,7 @@ public class Listofsignatures {
 	 * @return
 	 * @throws IOException
 	 */
-	private static CopyOnWriteArrayList<ClassObj> getForClassPath(final CopyOnWriteArrayList<Path> appendLibs)
+	public static CopyOnWriteArrayList<ClassObj> getForClassPath(final CopyOnWriteArrayList<Path> appendLibs)
 			throws IOException {
 		final var classPaths = System.getProperty("java.class.path").split(File.pathSeparator);
 		final var result = new CopyOnWriteArrayList<ClassObj>();
