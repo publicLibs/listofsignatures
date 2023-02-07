@@ -5,6 +5,7 @@ package com.github.publiclibs.listofsignatures;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -28,8 +29,8 @@ public class Listofsignatures {
 	public static void findClassInDir(final CopyOnWriteArrayList<ClassObj> result, final Path path1)
 			throws IOException {
 		if (Files.isDirectory(path1)) {
-			try (var stream = Files.list(path1)) {
-				stream.forEachOrdered((final var path) -> {
+			try (Stream<Path> stream = Files.list(path1)) {
+				stream.forEachOrdered((final Path path) -> {
 					try {
 						findClassInDir(result, path);
 					} catch (final IOException e) {
@@ -38,9 +39,9 @@ public class Listofsignatures {
 				});
 			}
 		} else if (Files.isRegularFile(path1)) {
-			final var full = path1.toFile().getAbsolutePath();
+			final String full = path1.toFile().getAbsolutePath();
 			if (full.endsWith(".class")) {
-				final var reader = new LSClassReader(full, path1);
+				final LSClassReader reader = new LSClassReader(full, path1);
 				result.addIfAbsent(reader.read());
 			}
 			if (full.endsWith(".jar")) {
@@ -57,10 +58,10 @@ public class Listofsignatures {
 	 */
 	public static CopyOnWriteArrayList<ClassObj> getForClassPath(final CopyOnWriteArrayList<Path> appendLibs)
 			throws IOException {
-		final var classPaths = System.getProperty("java.class.path").split(File.pathSeparator);
-		final var result = new CopyOnWriteArrayList<ClassObj>();
+		final String[] classPaths = System.getProperty("java.class.path").split(File.pathSeparator);
+		final CopyOnWriteArrayList<ClassObj> result = new CopyOnWriteArrayList<>();
 		for (final String classPath : classPaths) {
-			final var classPathPath = Paths.get(classPath);
+			final Path classPathPath = Paths.get(classPath);
 			findClassInDir(result, classPathPath);
 		}
 		for (final Path path : appendLibs) {
@@ -73,11 +74,11 @@ public class Listofsignatures {
 	public static Stream<String> getForClassPathWithSettings(final boolean full, final List<String> showOnlyRegExs,
 			final CopyOnWriteArrayList<Path> appendLibs) throws IOException {
 
-		final var returnData = new ArrayList<String>();
+		final ArrayList<String> returnData = new ArrayList<>();
 
-		final var result = getForClassPath(appendLibs);
+		final CopyOnWriteArrayList<ClassObj> result = getForClassPath(appendLibs);
 		for (final ClassObj classObj : result) {
-			final var list = classObj.getSignsForJazzer(full);
+			final CopyOnWriteArrayList<String> list = classObj.getSignsForJazzer(full);
 			//
 			for (final String sign : list) {
 				if (show(showOnlyRegExs, sign)) {
@@ -88,12 +89,31 @@ public class Listofsignatures {
 		return returnData.stream();
 	}
 
+	public static Stream<String> getForJars(final boolean full, final List<String> showOnlyRegExs,
+			final CopyOnWriteArrayList<Path> appendLibs) throws IOException {
+
+		final CopyOnWriteArrayList<ClassObj> result = new CopyOnWriteArrayList<>();
+		for (final Path path : appendLibs) {
+			findClassInDir(result, path);
+		}
+		final ArrayList<String> returnData = new ArrayList<>();
+		for (final ClassObj classObj : result) {
+			final CopyOnWriteArrayList<String> list = classObj.getSignsForJazzer(full);
+			for (final String sign : list) {
+				if (show(showOnlyRegExs, sign)) {
+					returnData.add(sign);
+				}
+			}
+		}
+		return returnData.stream();
+	}
+
 	public static void main(final String[] args) throws IOException {
-		var full = false;
-		final var needShowRegEx = new CopyOnWriteArrayList<String>();
-		final var appendLibs = new CopyOnWriteArrayList<Path>();
+		boolean full = false;
+		final CopyOnWriteArrayList<String> needShowRegEx = new CopyOnWriteArrayList<>();
+		final CopyOnWriteArrayList<Path> appendLibs = new CopyOnWriteArrayList<>();
 		for (final String arg : args) {
-			final var tmpPath = Paths.get(arg).toAbsolutePath();
+			final Path tmpPath = Paths.get(arg).toAbsolutePath();
 
 			if (arg.equals("FULL")) {
 				full = true;
@@ -105,18 +125,18 @@ public class Listofsignatures {
 				needShowRegEx.addIfAbsent(arg);
 			}
 		}
-		final var result = getForClassPathWithSettings(full, needShowRegEx, appendLibs);
+		final Stream<String> result = getForClassPathWithSettings(full, needShowRegEx, appendLibs);
 		result.forEachOrdered(System.out::println);
 	}
 
 	public static void readZip(final CopyOnWriteArrayList<ClassObj> result, final Path input) throws IOException {
-		try (var zipFile = new ZipFile(input.toFile())) {
+		try (ZipFile zipFile = new ZipFile(input.toFile())) {
 			final Enumeration<? extends ZipEntry> entriesEnumeration = zipFile.entries();
 			while (entriesEnumeration.hasMoreElements()) {
 				final ZipEntry zipEntry = entriesEnumeration.nextElement();
 				if (zipEntry.getName().endsWith(".class")) {
-					try (var is = zipFile.getInputStream(zipEntry)) {
-						final var reader = new LSClassReader(zipEntry.getName(), is);
+					try (InputStream is = zipFile.getInputStream(zipEntry)) {
+						final LSClassReader reader = new LSClassReader(zipEntry.getName(), is);
 						result.addIfAbsent(reader.read());
 					}
 				}

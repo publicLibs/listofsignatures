@@ -5,6 +5,7 @@ package com.github.publiclibs.listofsignatures.data.classes;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -22,10 +23,10 @@ public class ClassObj implements Serializable {
 	 * @return
 	 */
 	private static StringBuilder createArgString(final String[] arguments) {
-		final var argBuilder = new StringBuilder();
-		final var args = Arrays.asList(arguments).iterator();
+		final StringBuilder argBuilder = new StringBuilder();
+		final Iterator<String> args = Arrays.asList(arguments).iterator();
 		while (args.hasNext()) {
-			final var arg = args.next();
+			final String arg = args.next();
 			argBuilder.append(arg);
 			if (args.hasNext()) {
 				argBuilder.append(",");
@@ -49,17 +50,17 @@ public class ClassObj implements Serializable {
 	}
 
 	private String convertToSimple(final String fullIn) {
-		final var MAVEN_TARGET_CLASSES = "target/classes/";
-		var full = fullIn;
+		final String MAVEN_TARGET_CLASSES = "target/classes/";
+		String full = fullIn;
 		if (full.contains(MAVEN_TARGET_CLASSES)) {
 			full = full.split(MAVEN_TARGET_CLASSES)[1];
 		}
-		final var CLASSEXT = ".class";
+		final String CLASSEXT = ".class";
 		if (full.endsWith(CLASSEXT)) {
 			full = full.substring(0, full.length() - CLASSEXT.length());
 		}
 		fullClassName = full.replaceAll("/", ".");
-		final var data = fullClassName.split("\\.");
+		final String[] data = fullClassName.split("\\.");
 		simpleName = data[data.length - 1];
 
 		return fullClassName;
@@ -80,7 +81,7 @@ public class ClassObj implements Serializable {
 					continue;
 				}
 				if (full) {
-					final var argBuilder = createArgString(constructorObj.arguments);
+					final StringBuilder argBuilder = createArgString(constructorObj.arguments);
 					if (constructorObj.getArgumentsCount() > 0) {
 						ret.addIfAbsent(fullClassName + "::new(" + argBuilder + ")");
 					} else {
@@ -100,7 +101,7 @@ public class ClassObj implements Serializable {
 				if (onlyPublic && !methodObj.isPublic()) {
 					continue;
 				}
-				final var name = methodObj.name;
+				final String name = methodObj.name;
 				if (full) {
 					ret.addIfAbsent(fullClassName + "::" + name + "(" + createArgString(methodObj.arguments) + ")");
 				} else {
@@ -131,7 +132,7 @@ public class ClassObj implements Serializable {
 	}
 
 	public CopyOnWriteArrayList<String> getSignsForJazzer(final boolean full) {
-		final var ret = new CopyOnWriteArrayList<String>();
+		final CopyOnWriteArrayList<String> ret = new CopyOnWriteArrayList<>();
 
 		dump(ret, true, full);
 

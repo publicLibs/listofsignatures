@@ -10,7 +10,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Iterator;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Stream;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
@@ -30,19 +32,40 @@ public class ClassPathUtils {
 			return "";
 		}
 
-		final var arg = new StringBuilder();
+		final StringBuilder arg = new StringBuilder();
 		arg.append("-classpath ");
 		arg.append("\"");
-		final var iter = cps.iterator();
-		while (iter.hasNext()) {
-			final var cp = iter.next();
+		final String cp = createSeparatedCP(cps);
+		arg.append(cp);
+		arg.append("\"");
+		return arg.toString();
+	}
 
+	/**
+	 * @param cps
+	 * @return
+	 */
+	public static String createSeparatedCP(final CopyOnWriteArrayList<Path> cps) {
+		for (final Path path : cps) {
+			if (Files.isRegularFile(path)) {
+				final String name = path.toFile().getName();
+				if (name.endsWith(".jar")) {
+					final Path path2 = Paths.get(path.getParent().toString(), "*");
+					cps.remove(path);
+					cps.addIfAbsent(path2);
+				}
+			}
+		}
+
+		final Iterator<Path> iter = cps.iterator();
+		final StringBuilder arg = new StringBuilder();
+		while (iter.hasNext()) {
+			final Path cp = iter.next();
 			arg.append(cp.toAbsolutePath());
 			if (iter.hasNext()) {
 				arg.append(File.pathSeparatorChar);
 			}
 		}
-		arg.append("\"");
 		return arg.toString();
 	}
 
@@ -52,7 +75,7 @@ public class ClassPathUtils {
 	 */
 	public static void findAllJars(final CopyOnWriteArrayList<Path> jars, final Path inputPath) {
 		if (Files.isDirectory(inputPath)) {
-			try (var list = Files.list(inputPath)) {
+			try (Stream<Path> list = Files.list(inputPath)) {
 				list.forEachOrdered(inDirPath -> {
 					findAllJars(jars, inDirPath);
 				});
@@ -60,7 +83,7 @@ public class ClassPathUtils {
 				e.printStackTrace();
 			}
 		} else if (Files.isRegularFile(inputPath)) {
-			final var name = inputPath.toFile().getName();
+			final String name = inputPath.toFile().getName();
 			if (name.endsWith(".jar")) {
 				jars.add(inputPath);
 			}
@@ -76,7 +99,7 @@ public class ClassPathUtils {
 	 */
 	public static void findClassesInDir(final Path path, final CopyOnWriteArrayList<Path> classes) throws IOException {
 		if (Files.isDirectory(path)) {
-			try (var list = Files.list(path)) {
+			try (Stream<Path> list = Files.list(path)) {
 				list.forEachOrdered(inDirPath -> {
 					try {
 						findClassesInDir(inDirPath, classes);
@@ -89,16 +112,16 @@ public class ClassPathUtils {
 				e.printStackTrace();
 			}
 		} else if (Files.isRegularFile(path)) {
-			final var name = path.toFile().getName();
+			final String name = path.toFile().getName();
 			if (name.endsWith(".class")) {
-				try (var fis = new FileInputStream(path.toFile())) {
-					final var classNode = new ClassNode();
+				try (FileInputStream fis = new FileInputStream(path.toFile())) {
+					final ClassNode classNode = new ClassNode();
 					new ClassReader(fis).accept(classNode, ClassReader.EXPAND_FRAMES);
-					final var realname = classNode.name;
-					final var pa = path.normalize().toAbsolutePath();
-					final var data = pa.toString().split(realname)[0];
+					final String realname = classNode.name;
+					final Path pa = path.normalize().toAbsolutePath();
+					final String data = pa.toString().split(realname)[0];
 					if (pa.toString().startsWith(data)) {
-						final var newPath = Paths.get(data).normalize().toAbsolutePath();
+						final Path newPath = Paths.get(data).normalize().toAbsolutePath();
 						classes.addIfAbsent(newPath);
 					}
 
@@ -126,9 +149,9 @@ public class ClassPathUtils {
 
 	public static void recognizeClassPath(final CopyOnWriteArrayList<Path> jars,
 			final CopyOnWriteArrayList<Path> classes) throws IOException {
-		final var classPaths = System.getProperty("java.class.path").split(File.pathSeparator);
+		final String[] classPaths = System.getProperty("java.class.path").split(File.pathSeparator);
 		for (final String string : classPaths) {
-			final var path = Paths.get(string).toAbsolutePath().normalize();
+			final Path path = Paths.get(string).toAbsolutePath().normalize();
 			recognize(jars, classes, path);
 		}
 	}

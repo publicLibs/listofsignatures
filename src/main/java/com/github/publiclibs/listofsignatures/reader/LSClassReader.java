@@ -56,25 +56,25 @@ public class LSClassReader extends ClassReader {
 
 	private void print(final String methodName, final int access, final String desc) {
 		// args
-		final var classArgsAr = Type.getArgumentTypes(desc);
-		final var argsLen = classArgsAr.length;
+		final Type[] classArgsAr = Type.getArgumentTypes(desc);
+		final int argsLen = classArgsAr.length;
 		final List<Type> argList = Arrays.asList(classArgsAr);
-		final var args = new String[argsLen];
-		for (var i = 0; i < args.length; i++) {
-			final var type = argList.get(i);
+		final String[] args = new String[argsLen];
+		for (int i = 0; i < args.length; i++) {
+			final Type type = argList.get(i);
 			args[i] = type.getClassName();
 		}
 
 		if ("<init>".equals(methodName)) {
-			final var constructor = new ConstructorObj();
+			final ConstructorObj constructor = new ConstructorObj();
 			constructor.arguments = args;
 			constructor.access = access;
 			if (result.constructors == null) {
 				result.constructors = new ConstructorObj[] { constructor };
 			} else {
-				final var oldConstructors = result.constructors;
-				final var newConstructors = new ConstructorObj[oldConstructors.length + 1];
-				for (var i = 0; i < oldConstructors.length; i++) {
+				final ConstructorObj[] oldConstructors = result.constructors;
+				final ConstructorObj[] newConstructors = new ConstructorObj[oldConstructors.length + 1];
+				for (int i = 0; i < oldConstructors.length; i++) {
 					newConstructors[i] = oldConstructors[i];
 				}
 				newConstructors[newConstructors.length - 1] = constructor;
@@ -82,10 +82,10 @@ public class LSClassReader extends ClassReader {
 			}
 		} else {
 			// return
-			final var returnType = Type.getReturnType(desc);
-			final var returnCLassName = returnType.getClassName();
+			final Type returnType = Type.getReturnType(desc);
+			final String returnCLassName = returnType.getClassName();
 
-			final var method = new MethodObj();
+			final MethodObj method = new MethodObj();
 			method.access = access;
 			method.returnClassName = returnCLassName;
 			method.name = methodName;
@@ -93,9 +93,9 @@ public class LSClassReader extends ClassReader {
 			if (result.methods == null) {
 				result.methods = new MethodObj[] { method };
 			} else {
-				final var oldMethods = result.methods;
-				final var newMethods = new MethodObj[oldMethods.length + 1];
-				for (var i = 0; i < oldMethods.length; i++) {
+				final MethodObj[] oldMethods = result.methods;
+				final MethodObj[] newMethods = new MethodObj[oldMethods.length + 1];
+				for (int i = 0; i < oldMethods.length; i++) {
 					newMethods[i] = oldMethods[i];
 				}
 				newMethods[newMethods.length - 1] = method;
