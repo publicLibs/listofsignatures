@@ -54,7 +54,8 @@ public class LSClassReader extends ClassReader {
 		result = new ClassObj(className);
 	}
 
-	private void print(final String methodName, final int access, final String desc) {
+	private void parseMethod(final String methodName, final int access, final String desc) {
+
 		// args
 		final Type[] classArgsAr = Type.getArgumentTypes(desc);
 		final int argsLen = classArgsAr.length;
@@ -99,6 +100,7 @@ public class LSClassReader extends ClassReader {
 					newMethods[i] = oldMethods[i];
 				}
 				newMethods[newMethods.length - 1] = method;
+				result.methods = newMethods;
 			}
 		}
 
@@ -112,11 +114,13 @@ public class LSClassReader extends ClassReader {
 		final ClassVisitor classVisitor = new ClassVisitor(Opcodes.ASM9) {
 			public @Override MethodVisitor visitMethod(final int access, final String name, final String desc,
 					final String signature, final String[] exceptions) {
-				print(name, access, desc);
+
+				parseMethod(name, access, desc);
 				return super.visitMethod(access, name, desc, signature, exceptions);
 			}
 		};
 		accept(classVisitor, 0);
+
 		return result;
 	}
 }
